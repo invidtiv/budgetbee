@@ -12,6 +12,7 @@ use App\Http\Controllers\ImportController;
 use App\Http\Controllers\RecordController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AiController;
+use App\Http\Controllers\AiProviderKeyController;
 use App\Http\Controllers\ApiKeyController;
 use App\Http\Controllers\ExternalApiController;
 use App\Http\Controllers\UpcomingExpenseController;
@@ -108,6 +109,8 @@ Route::prefix('budget')->middleware(['auth:sanctum', 'token.refresh'])->group(fu
 
 Route::prefix('ai')->middleware(['auth:sanctum', 'token.refresh'])->group(function () {
     Route::post('/predict-category', [AiController::class, 'predictCategoryRequest']);
+    Route::post('/chat', [AiController::class, 'chat'])->middleware('throttle:100,1');
+    Route::post('/clear-history', [AiController::class, 'clearHistory']);
 });
 
 Route::prefix('api-keys')->middleware(['auth:sanctum', 'token.refresh'])->group(function () {
@@ -122,6 +125,12 @@ Route::prefix('upcoming-expenses')->middleware(['auth:sanctum', 'token.refresh']
     Route::post('', [UpcomingExpenseController::class, 'create']);
     Route::post('{id}', [UpcomingExpenseController::class, 'update']);
     Route::delete('{id}', [UpcomingExpenseController::class, 'delete']);
+});
+
+Route::prefix('ai-provider-keys')->middleware('auth:sanctum')->group(function () {
+    Route::get('', [AiProviderKeyController::class, 'index']);
+    Route::post('', [AiProviderKeyController::class, 'store']);
+    Route::delete('{id}', [AiProviderKeyController::class, 'destroy']);
 });
 
 Route::prefix('v1/external')->middleware('auth.apikey')->group(function () {
