@@ -18,8 +18,7 @@ class AuthenticateApiKey
             return response()->json(['message' => 'API key is required'], 401);
         }
 
-        // HMAC with app key as salt to prevent rainbow table attacks
-        $hashedKey = hash_hmac('sha256', $apiKeyValue, config('app.key'));
+        $hashedKey = hash('sha256', $apiKeyValue);
 
         $apiKey = ApiKey::where('key', $hashedKey)->first();
 
