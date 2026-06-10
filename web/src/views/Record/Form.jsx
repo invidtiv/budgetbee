@@ -282,8 +282,8 @@ export default function Form() {
                             </div>
                             {record?.from_account_id &&
                                 record?.to_account_id &&
-                                accounts?.find(a => a.id === Number(record?.from_account_id))?.currency_code !==
-                                    accounts?.find(a => a.id === Number(record?.to_account_id))?.currency_code && (
+                                record?.from_account_id !==
+                                    record?.to_account_id && (
                                     <div className="basis-1/2">
                                         <label
                                             for="rate"
