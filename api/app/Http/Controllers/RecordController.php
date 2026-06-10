@@ -94,11 +94,10 @@ class RecordController extends Controller
             'to_account_id' => 'integer|exists:App\Models\Account,id',
             'category_id' => 'integer|exists:App\Models\Category,id',
             'name' => 'nullable|string',
-            'type' => 'required|string|in:income,expense,transfer',
+            'type' => 'required|string',
             'amount' => 'required|numeric',
             'rate' => 'nullable|numeric',
             'code' => 'nullable|string',
-            'description' => 'nullable|string',
         ]);
 
         $data = $request->only('date', 'from_account_id', 'to_account_id', 'type', 'category_id', 'name', 'amount', 'description', 'rate', 'code');
@@ -132,14 +131,12 @@ class RecordController extends Controller
         $this->authorize('update', $record);
 
         $this->validate($request, [
-            'date' => 'required|date',
-            'from_account_id' => 'required|integer|exists:App\Models\Account,id',
+            'date' => 'required',
+            'from_account_id' => 'required',
             'to_account_id' => 'integer|exists:App\Models\Account,id',
-            'type' => 'required|string|in:income,expense,transfer',
-            'amount' => 'required|numeric',
-            'rate' => 'nullable|numeric',
-            'name' => 'nullable|string',
-            'description' => 'nullable|string',
+            'type' => 'required',
+            'amount' => 'required',
+            'rate' => 'nullable|numeric'
         ]);
 
         $data = $request->only('date', 'from_account_id', 'to_account_id', 'type', 'category_id', 'name', 'amount', 'description', 'rate');
@@ -191,8 +188,7 @@ class RecordController extends Controller
             $query->where('date', '<=', (new DateTime($request->query('to_date')))->format('Y-m-d'));
         }
         if ($request->has('search_term')) {
-            $term = str_replace(['%', '_'], ['\\%', '\\_'], $request->query('search_term'));
-            $query->where('name', 'like', '%' . $term . '%');
+            $query->where('name', 'like', '%' . $request->query('search_term') . '%');
         }
         if ($request->has('limit')) {
             $query->limit($request->query('limit'));

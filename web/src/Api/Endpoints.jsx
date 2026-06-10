@@ -3,43 +3,24 @@ import Cookies from "universal-cookie";
 
 const cookies = new Cookies();
 const API_BASE_URL = "/api";
-const TOKEN_COOKIE_NAME = "token";
-const TOKEN_DURATION_MS = 2 * 60 * 60 * 1000; // 2 hours
-
-const setTokenCookie = (token) => {
-    const expirationDate = new Date();
-    expirationDate.setTime(expirationDate.getTime() + TOKEN_DURATION_MS);
-    const isSecure = window.location.protocol === 'https:';
-    cookies.set(TOKEN_COOKIE_NAME, token, {
-        path: "/",
-        expires: expirationDate,
-        secure: isSecure,
-        sameSite: 'Lax',
-    });
-};
-
-const getAuthHeader = () => {
-    return { Authorization: "Bearer " + cookies.get(TOKEN_COOKIE_NAME) };
-};
-
 const HEADERS = {
-    headers: { Authorization: "Bearer " + cookies.get(TOKEN_COOKIE_NAME) },
+    headers: { Authorization: "Bearer " + cookies.get("token") },
 };
 
 const handleErrors = (error) => {
-    const status = error.response?.status;
+    const status = error.response.status;
 
     let message;
     switch (status) {
         case 401:
-            cookies.remove(TOKEN_COOKIE_NAME);
+            cookies.remove("token");
             window.location.href = "/login";
             break;
         case 404:
             message = "Not Found";
             break;
         default:
-            message = error.response?.data?.error || "Unknown error";
+            message = error.response.data.error;
             break;
     }
 
@@ -67,7 +48,7 @@ async function call(method, endpoint, data = null) {
         method: method,
         url: `${API_BASE_URL}/${endpoint}`,
         headers: {
-            Authorization: "Bearer " + cookies.get(TOKEN_COOKIE_NAME),
+            Authorization: "Bearer " + cookies.get("token"),
         },
     };
 
@@ -83,13 +64,6 @@ async function call(method, endpoint, data = null) {
 
     try {
         const response = await axios(options);
-
-        // Check for a refreshed token from the backend
-        const newToken = response.headers['x-new-token'];
-        if (newToken) {
-            setTokenCookie(newToken);
-        }
-
         return response.data;
     } catch (error) {
         return handleErrors(error);
@@ -120,7 +94,12 @@ const Endpoints = {
                 data,
                 HEADERS
             );
-            setTokenCookie(response.data.access_token);
+            var expirationDate = new Date();
+            expirationDate.setTime(expirationDate.getTime() + 3600000);
+            cookies.set("token", response.data.access_token, {
+                path: "/",
+                expires: expirationDate,
+            });
             return response.data;
         } catch (error) {
             return null;
@@ -151,20 +130,8 @@ const Endpoints = {
 
     userLogout: async () => {
         post(`user/logout`, []);
-        cookies.remove(TOKEN_COOKIE_NAME);
+        cookies.remove("token");
         window.location.href = "/login";
-    },
-
-    refreshToken: async () => {
-        try {
-            const response = await post('user/refresh');
-            if (response.access_token) {
-                setTokenCookie(response.access_token);
-            }
-            return response;
-        } catch (error) {
-            return null;
-        }
     },
 
     userUpdate: async (data, id) => {
