@@ -4,6 +4,8 @@ import { NextUIProvider } from "@nextui-org/react";
 import "./App.css";
 
 import AppRoutes from "./AppRoutes";
+import ChatBot from "./Components/ChatBot/ChatBot";
+import { useSessionManager } from "./hooks/useSessionManager";
 
 // Icons
 import { library } from "@fortawesome/fontawesome-svg-core";
@@ -16,11 +18,14 @@ const iconList = Object.keys(Icons)
 library.add(...iconList);
 
 function App() {
+    useSessionManager();
+
     return (
         <NextUIProvider>
             <div className="App select-none">
                 <BrowserRouter>
                     <AppRoutes />
+                    <ChatBot />
                 </BrowserRouter>
             </div>
         </NextUIProvider>

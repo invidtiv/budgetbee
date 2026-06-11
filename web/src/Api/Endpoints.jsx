@@ -3,24 +3,43 @@ import Cookies from "universal-cookie";
 
 const cookies = new Cookies();
 const API_BASE_URL = "/api";
+const TOKEN_COOKIE_NAME = "token";
+const TOKEN_DURATION_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+const setTokenCookie = (token) => {
+    const expirationDate = new Date();
+    expirationDate.setTime(expirationDate.getTime() + TOKEN_DURATION_MS);
+    const isSecure = window.location.protocol === 'https:';
+    cookies.set(TOKEN_COOKIE_NAME, token, {
+        path: "/",
+        expires: expirationDate,
+        secure: isSecure,
+        sameSite: 'Lax',
+    });
+};
+
+const getAuthHeader = () => {
+    return { Authorization: "Bearer " + cookies.get(TOKEN_COOKIE_NAME) };
+};
+
 const HEADERS = {
-    headers: { Authorization: "Bearer " + cookies.get("token") },
+    headers: { Authorization: "Bearer " + cookies.get(TOKEN_COOKIE_NAME) },
 };
 
 const handleErrors = (error) => {
-    const status = error.response.status;
+    const status = error.response?.status;
 
     let message;
     switch (status) {
         case 401:
-            cookies.remove("token");
+            cookies.remove(TOKEN_COOKIE_NAME);
             window.location.href = "/login";
             break;
         case 404:
             message = "Not Found";
             break;
         default:
-            message = error.response.data.error;
+            message = error.response?.data?.error || "Unknown error";
             break;
     }
 
@@ -48,22 +67,28 @@ async function call(method, endpoint, data = null) {
         method: method,
         url: `${API_BASE_URL}/${endpoint}`,
         headers: {
-            Authorization: "Bearer " + cookies.get("token"),
+            Authorization: "Bearer " + cookies.get(TOKEN_COOKIE_NAME),
         },
     };
 
     if (method.toLowerCase() === "post" && data) {
-        options.data = data;
-
-        if (data.file) {
-            options.headers["Content-Type"] = "multipart/form-data";
+        if (data instanceof FormData) {
+            options.data = data;
         } else {
+            options.data = data;
             options.headers["Content-Type"] = "application/json";
         }
     }
 
     try {
         const response = await axios(options);
+
+        // Check for a refreshed token from the backend
+        const newToken = response.headers['x-new-token'];
+        if (newToken) {
+            setTokenCookie(newToken);
+        }
+
         return response.data;
     } catch (error) {
         return handleErrors(error);
@@ -94,12 +119,7 @@ const Endpoints = {
                 data,
                 HEADERS
             );
-            var expirationDate = new Date();
-            expirationDate.setTime(expirationDate.getTime() + 3600000);
-            cookies.set("token", response.data.access_token, {
-                path: "/",
-                expires: expirationDate,
-            });
+            setTokenCookie(response.data.access_token);
             return response.data;
         } catch (error) {
             return null;
@@ -130,8 +150,20 @@ const Endpoints = {
 
     userLogout: async () => {
         post(`user/logout`, []);
-        cookies.remove("token");
+        cookies.remove(TOKEN_COOKIE_NAME);
         window.location.href = "/login";
+    },
+
+    refreshToken: async () => {
+        try {
+            const response = await post('user/refresh');
+            if (response.access_token) {
+                setTokenCookie(response.access_token);
+            }
+            return response;
+        } catch (error) {
+            return null;
+        }
     },
 
     userUpdate: async (data, id) => {
@@ -340,6 +372,22 @@ const Endpoints = {
         return post('ai/predict-category', {name: text})
     },
 
+    chatMessage: async (message, files = null) => {
+        if (files && files.length > 0) {
+            const formData = new FormData();
+            formData.append('message', message || '');
+            files.forEach((f) => {
+                formData.append('files[]', f.file, f.name);
+            });
+            return post('ai/chat', formData);
+        }
+        return post('ai/chat', { message });
+    },
+
+    clearChatHistory: async () => {
+        return post('ai/clear-history');
+    },
+
     getApiKeys: async () => {
         return get('api-keys');
     },
@@ -370,6 +418,18 @@ const Endpoints = {
 
     deleteUpcomingExpense: async (id) => {
         return del(`upcoming-expenses/${id}`);
+    },
+
+    getAiProviderKeys: async () => {
+        return get('ai-provider-keys');
+    },
+
+    saveAiProviderKey: async (data) => {
+        return post('ai-provider-keys', data);
+    },
+
+    deleteAiProviderKey: async (id) => {
+        return del(`ai-provider-keys/${id}`);
     },
 }
 

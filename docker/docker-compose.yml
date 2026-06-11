@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   nginx:
     image: ghcr.io/budgetbee/budgetbee/proxy:latest
@@ -17,13 +16,15 @@ services:
     command: sh entrypoint.sh
     environment:
       DB_HOST: db
-      DB_DATABASE: ${DB_DATABASE}   # Name of the MySQL database (e.g. budgetbee)
-      DB_USERNAME: ${DB_USERNAME}   # MySQL user the app connects with (e.g. budgetbee)
-      DB_PASSWORD: ${DB_PASSWORD}   # Password for the MySQL app user — use a strong value
+      DB_DATABASE: ${DB_DATABASE}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
+    volumes:
+      - budgetbee_config:/config
     networks:
       - skynet
   web:
@@ -51,4 +52,5 @@ services:
 networks:
   skynet:
 volumes:
+  budgetbee_config:
   db_data:
