@@ -16,9 +16,9 @@ STORAGE_LOGS="/var/www/html/storage/logs"
 ROOT_DEV=$(stat -c '%d' /)
 CONFIG_DEV=$(stat -c '%d' "$CONFIG_DIR" 2>/dev/null || echo "$ROOT_DEV")
 if [ "$ROOT_DEV" = "$CONFIG_DEV" ]; then
-    echo "=============================================="
+    echo "============================================="
     echo "  ERROR: /config volume is NOT mounted!"
-    echo "=============================================="
+    echo "============================================="
     echo ""
     echo "  BudgetBee now requires a persistent volume for"
     echo "  configuration and logs. Update your docker-compose.yml:"
@@ -32,7 +32,7 @@ if [ "$ROOT_DEV" = "$CONFIG_DEV" ]; then
     echo "    budgetbee_config:"
     echo ""
     echo "  See: https://github.com/budgetbee/budgetbee"
-    echo "=============================================="
+    echo "============================================="
     echo "[entrypoint] Sleeping indefinitely — fix your docker-compose.yml and restart"
     exec sleep infinity
 fi
